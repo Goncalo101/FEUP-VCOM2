@@ -1,36 +1,63 @@
+from types import new_class
 import cv2 as cv
 import numpy as np
 import math
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
+from sklearn.cluster import MiniBatchKMeans
 
 class Vocabulary:
     def __init__(self, nWords):
         self.vocabulary = None
         self.nWords = nWords
+        self.descriptor_list = []
         
     def train(self, listOfImages):
-        # detector = cv.xfeatures2d.SIFT_create()
-        detector = cv.BRISK_create(thresh=20)
-        descriptors = []
+        # Create feature extractors and keypoint detectors using BRISK 
+        # which offers better performance for this dataset than KAZE and SIFT.
+        # Using a threshold of 20 (lower than the default 30) significantly lowers 
+        # the number of images from where the detector cannot retrieve descriptors.
+        detector = cv.BRISK_create(thresh=30)
+
+        self.descriptor_list = []
         for name in tqdm(listOfImages):
             img = open_image(name)
             if img is None:
                 continue
+
             keypoints, img_descriptors = detector.detectAndCompute(img, None)
             
             if img_descriptors is None:
                 print(f'No descriptors found for {name}. Skipping')
                 continue
 
-            descriptors.append((name, img_descriptors))
+            self.descriptor_list.append((name, img_descriptors))
 
-        criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        compactness,labels,centers = cv.kmeans(np.float32(descriptors), self.nWords, None, criteria, 100, cv.KMEANS_PP_CENTERS)
-        self.vocabulary = centers
+        # Stack descriptors vertically in a numpy array
+        descriptors = self.descriptor_list[0][1]
+        for img_path, descriptor in self.descriptor_list[1:]:
+            descriptors = np.vstack((descriptors, descriptor))
 
-    def whichWord(self, descriptor):
+        # Perform k-means clustering on the descriptors, with as many clusters as the number of words
+        print('Computing clusters...')
+        # --- Scipy
+        # descriptors_f = descriptors.astype(float)
+        # voc, variance = kmeans(descriptors_f, self.nWords)
+        # --- OpenCV
+        # criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
+        # compactness,labels,centers = cv.kmeans(np.float32(descriptors), self.nWords, None, criteria, 50, cv.KMEANS_PP_CENTERS)
+        # --- scikit-learn
+        kmeans = MiniBatchKMeans(n_clusters=self.nWords, random_state=0, batch_size=25)
+        kmeans.fit(descriptors)
+        print('Done!')
+
+        # Store the centroids for each cluster
+        # self.vocabulary = voc
+        # self.vocabulary = centers
+        self.vocabulary = kmeans.cluster_centers_
+
+    def which_word(self, descriptor):
         if self.vocabulary.shape[0] <= 1:
             return -1
 
