@@ -12,29 +12,22 @@ class Vocabulary:
         
     def train(self, listOfImages):
         # detector = cv.xfeatures2d.SIFT_create()
-        detector = cv.BRISK_create(thresh=30)
-        allDescriptors = []
+        detector = cv.BRISK_create(thresh=20)
+        descriptors = []
         for name in tqdm(listOfImages):
             img = open_image(name)
             if img is None:
                 continue
-            keypoints, descriptors = detector.detectAndCompute(img, None)
-
-            if descriptors is None:
-                _detector = cv.BRISK_create(thresh=20)
-
-                keypoints, descriptors = _detector.detectAndCompute(img, None)
-                allDescriptors.append((name, descriptors))
-                continue
+            keypoints, img_descriptors = detector.detectAndCompute(img, None)
             
-            if allDescriptors is None:
-                print('Big oof!', name)
+            if img_descriptors is None:
+                print(f'No descriptors found for {name}. Skipping')
                 continue
 
-            allDescriptors.append((name, descriptors))
+            descriptors.append((name, img_descriptors))
 
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        compactness,labels,centers = cv.kmeans(np.float32(allDescriptors), self.nWords, None, criteria, 100, cv.KMEANS_PP_CENTERS)
+        compactness,labels,centers = cv.kmeans(np.float32(descriptors), self.nWords, None, criteria, 100, cv.KMEANS_PP_CENTERS)
         self.vocabulary = centers
 
     def whichWord(self, descriptor):
