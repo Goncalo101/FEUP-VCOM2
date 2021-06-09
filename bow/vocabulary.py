@@ -1,4 +1,3 @@
-from types import new_class
 import cv2 as cv
 import numpy as np
 import math
@@ -36,7 +35,7 @@ class Vocabulary:
             self.descriptor_list.append((name, img_descriptors))
 
         # Stack descriptors vertically in a numpy array
-        print('Stacking descriptors')
+        print('\nStacking descriptors')
         sys.stdout.flush()
         descriptors = self.descriptor_list[0][1]
         for img_path, descriptor in tqdm(self.descriptor_list[1:]):
