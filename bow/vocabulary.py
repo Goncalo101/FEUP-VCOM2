@@ -12,6 +12,23 @@ class Vocabulary:
         self.vocabulary = None
         self.nWords = nWords
         self.descriptor_list = []
+
+    def train_without_clustering(self, listOfImages):
+        detector = cv.BRISK_create(thresh=20)
+
+        self.descriptor_list = []
+        for name in tqdm(listOfImages):
+            img = open_image(name)
+            if img is None:
+                continue
+
+            keypoints, img_descriptors = detector.detectAndCompute(img, None)
+            
+            if img_descriptors is None:
+                print(f'No descriptors found for {name}. Skipping')
+                continue
+
+            self.descriptor_list.append((name, img_descriptors))
         
     def train(self, listOfImages):
         # Create feature extractors and keypoint detectors using BRISK 
