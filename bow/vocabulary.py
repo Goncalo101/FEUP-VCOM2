@@ -3,6 +3,7 @@ import cv2 as cv
 import numpy as np
 import math
 import matplotlib.pyplot as plt
+import sys
 
 from tqdm import tqdm
 from sklearn.cluster import MiniBatchKMeans
@@ -18,7 +19,7 @@ class Vocabulary:
         # which offers better performance for this dataset than KAZE and SIFT.
         # Using a threshold of 20 (lower than the default 30) significantly lowers 
         # the number of images from where the detector cannot retrieve descriptors.
-        detector = cv.BRISK_create(thresh=30)
+        detector = cv.BRISK_create(thresh=20)
 
         self.descriptor_list = []
         for name in tqdm(listOfImages):
@@ -35,8 +36,10 @@ class Vocabulary:
             self.descriptor_list.append((name, img_descriptors))
 
         # Stack descriptors vertically in a numpy array
+        print('Stacking descriptors')
+        sys.stdout.flush()
         descriptors = self.descriptor_list[0][1]
-        for img_path, descriptor in self.descriptor_list[1:]:
+        for img_path, descriptor in tqdm(self.descriptor_list[1:]):
             descriptors = np.vstack((descriptors, descriptor))
 
         # Perform k-means clustering on the descriptors, with as many clusters as the number of words
